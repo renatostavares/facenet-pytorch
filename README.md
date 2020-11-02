@@ -1,3 +1,6 @@
+[![](data/facenet-pytorch-banner.png)](https://xscode.com/timesler/facenet-pytorch)
+[![Foo](https://xscode.com/assets/promo-banner.svg)](https://xscode.com/timesler/facenet-pytorch)
+
 # Face Recognition Using Pytorch 
 [![Downloads](https://pepy.tech/badge/facenet-pytorch)](https://pepy.tech/project/facenet-pytorch)
 
@@ -7,39 +10,60 @@
 | :---: | :---: | :---: | :---: |
 | Status | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) | [![Build Status](https://travis-ci.com/timesler/facenet-pytorch.svg?branch=master)](https://travis-ci.com/timesler/facenet-pytorch) |
 
+[![xscode](https://img.shields.io/badge/Available%20on-xs%3Acode-blue?style=?style=plastic&logo=appveyor&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRF////////VXz1bAAAAAJ0Uk5T/wDltzBKAAAAlUlEQVR42uzXSwqAMAwE0Mn9L+3Ggtgkk35QwcnSJo9S+yGwM9DCooCbgn4YrJ4CIPUcQF7/XSBbx2TEz4sAZ2q1RAECBAiYBlCtvwN+KiYAlG7UDGj59MViT9hOwEqAhYCtAsUZvL6I6W8c2wcbd+LIWSCHSTeSAAECngN4xxIDSK9f4B9t377Wd7H5Nt7/Xz8eAgwAvesLRjYYPuUAAAAASUVORK5CYII=)](https://xscode.com/timesler/facenet-pytorch)
+
 This is a repository for Inception Resnet (V1) models in pytorch, pretrained on VGGFace2 and CASIA-Webface.
 
 Pytorch model weights were initialized using parameters ported from David Sandberg's [tensorflow facenet repo](https://github.com/davidsandberg/facenet).
 
-Also included in this repo is an efficient pytorch implementation of MTCNN for face detection prior to inference. These models are also pretrained.
+Also included in this repo is an efficient pytorch implementation of MTCNN for face detection prior to inference. These models are also pretrained. To our knowledge, this is the fastest MTCNN implementation available.
+
+## Table of contents
+
+* [Table of contents](#table-of-contents)
+* [Quick start](#quick-start)
+* [Pretrained models](#pretrained-models)
+* [Example notebooks](#example-notebooks)
+  + [*Complete detection and recognition pipeline*](#complete-detection-and-recognition-pipeline)
+  + [*Face tracking in video streams*](#face-tracking-in-video-streams)
+  + [*Finetuning pretrained models with new data*](#finetuning-pretrained-models-with-new-data)
+  + [*Guide to MTCNN in facenet-pytorch*](#guide-to-mtcnn-in-facenet-pytorch)
+  + [*Performance comparison of face detection packages*](#performance-comparison-of-face-detection-packages)
+  + [*The FastMTCNN algorithm*](#the-fastmtcnn-algorithm)
+* [Running with docker](#running-with-docker)
+* [Use this repo in your own git project](#use-this-repo-in-your-own-git-project)
+* [Conversion of parameters from Tensorflow to Pytorch](#conversion-of-parameters-from-tensorflow-to-pytorch)
+* [References](#references)
 
 ## Quick start
 
-1. Either install using pip:
+1. Install:
+    
     ```bash
+    # With pip:
     pip install facenet-pytorch
-    ```
-    or clone this repo, removing the '-' to allow python imports:
-    ```bash
+    
+    # or clone this repo, removing the '-' to allow python imports:
     git clone https://github.com/timesler/facenet-pytorch.git facenet_pytorch
-    ```
-    or use a docker container (see [timesler/jupyter-dl-gpu](https://github.com/timesler/docker-jupyter-dl-gpu)):
-    ```bash
+    
+    # or use a docker container (see https://github.com/timesler/docker-jupyter-dl-gpu):
     docker run -it --rm timesler/jupyter-dl-gpu pip install facenet-pytorch && ipython
     ```
-1. In python, import the module:
+    
+1. In python, import facenet-pytorch and instantiate models:
+    
     ```python
     from facenet_pytorch import MTCNN, InceptionResnetV1
-    ```
-1. If required, create a face _detection_ pipeline using MTCNN:
-    ```python
+    
+    # If required, create a face detection pipeline using MTCNN:
     mtcnn = MTCNN(image_size=<image_size>, margin=<margin>)
-    ```
-1. Create an inception resnet (in eval mode):
-    ```python
+    
+    # Create an inception resnet (in eval mode):
     resnet = InceptionResnetV1(pretrained='vggface2').eval()
     ```
+    
 1. Process an image:
+    
     ```python
     from PIL import Image
     
@@ -107,6 +131,47 @@ MTCNN can be used to build a face tracking system (using the `MTCNN.detect()` me
 
 In most situations, the best way to implement face recognition is to use the pretrained models directly, with either a clustering algorithm or a simple distance metrics to determine the identity of a face. However, if finetuning is required (i.e., if you want to select identity based on the model's output logits), an example can be found at [examples/finetune.ipynb](examples/finetune.ipynb).
 
+### *Guide to MTCNN in facenet-pytorch*
+
+This guide demonstrates the functionality of the MTCNN module. Topics covered are:
+
+* Basic usage
+* Image normalization
+* Face margins
+* Multiple faces in a single image
+* Batched detection
+* Bounding boxes and facial landmarks
+* Saving face datasets
+
+See the [notebook on kaggle](https://www.kaggle.com/timesler/guide-to-mtcnn-in-facenet-pytorch).
+
+### *Performance comparison of face detection packages*
+
+This notebook demonstrates the use of three face detection packages:
+
+1. facenet-pytorch
+1. mtcnn
+1. dlib
+
+Each package is tested for its speed in detecting the faces in a set of 300 images (all frames from one video), with GPU support enabled. Performance is based on Kaggle's P100 notebook kernel. Results are summarized below.
+
+|Package|FPS (1080x1920)|FPS (720x1280)|FPS (540x960)|
+|---|---|---|---|
+|facenet-pytorch|12.97|20.32|25.50|
+|facenet-pytorch (non-batched)|9.75|14.81|19.68|
+|dlib|3.80|8.39|14.53|
+|mtcnn|3.04|5.70|8.23|
+
+![](examples/performance-comparison.png)
+
+See the [notebook on kaggle](https://www.kaggle.com/timesler/comparison-of-face-detection-packages).
+
+### *The FastMTCNN algorithm*
+
+This algorithm demonstrates how to achieve extremely efficient face detection specifically in videos, by taking advantage of similarities between adjacent frames.
+
+See the [notebook on kaggle](https://www.kaggle.com/timesler/fast-mtcnn-detector-55-fps-at-full-resolution).
+
 ## Running with docker
 
 The package and any of the example notebooks can be run with docker (or nvidia-docker) using:
@@ -143,7 +208,9 @@ Following instantiation of the pytorch model, each layer's weights were loaded f
 The equivalence of the outputs from the original tensorflow models and the pytorch-ported models have been tested and are identical:
 
 ---
+
 `>>> compare_model_outputs(mdl, sess, torch.randn(5, 160, 160, 3).detach())`
+
 ```
 Passing test data through TF model
 
@@ -164,6 +231,7 @@ tensor([[-0.0142,  0.0615,  0.0057,  ...,  0.0497,  0.0375, -0.0838],
 
 Distance 1.2874517096861382e-06
 ```
+
 ---
 
 In order to re-run the conversion of tensorflow parameters into the pytorch model, ensure you clone this repo _with submodules_, as the davidsandberg/facenet repo is included as a submodule and parts of it are required for the conversion.
